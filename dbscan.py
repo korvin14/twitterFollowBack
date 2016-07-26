@@ -6,6 +6,9 @@ import time
 from sklearn.cross_validation import train_test_split
 # from sklearn.decomposition.tests.test_nmf import random_state
 from sklearn.metrics.classification import accuracy_score, log_loss
+from sklearn.ensemble.forest import RandomForestClassifier, \
+    RandomForestRegressor
+from sklearn.linear_model.logistic import LogisticRegression
 # 1st: log regr implementation
 # 2nd: random forest
 class UsersPair():
@@ -87,30 +90,46 @@ friendsFinal = calcFriends(friendsProcessed)
 features = []
 answers = []
 
-
-i = 0
-
+ 
 for x in friendsFinal:
     answers.append(friendsFinal[x])
     if not (x in outTweets):
         features.append([0])
     else:
         features.append([outTweets[x]])
-        
-regr = LogisticRegressionCV(cv=5, solver="liblinear", class_weight=None, n_jobs=4, random_state=999)
-
-x_train, x_test, y_train, y_test = train_test_split(features, answers, test_size=0.4, random_state=999)
-
+      
+"""LOGISTIC REGR"""  
+regr = LogisticRegression(solver="sag")
+# 
+x_train, x_test, y_train, y_test = train_test_split(features, answers, test_size=0.6, random_state=999)
+# 
+print "xtr and xtest"
+print len(x_train)
+print len(x_test)
 regr.fit(x_train, y_train)
-
+# 
 predicted_hui = regr.predict(x_test)
 predicted_hui_train = regr.predict(x_train)
 
+reg_proba_test = regr.predict_proba(x_test)
+reg_proba_tr = regr.predict_proba(x_train)
+
 acc_hui = accuracy_score(y_test, predicted_hui)
-# reg_log_loss_C1 = log_loss(y_test, reg_probalities_C1)
+loss_reg_test = log_loss(y_test, reg_proba_test)
 acc_hui_train = accuracy_score(y_train, predicted_hui_train)
-# reg_log_loss_C1_tr = log_loss(y_train, reg_probalities_C1_tr)
-print "acc_test {}\n acc_train {}".format(acc_hui, acc_hui_train)
+loss_reg_tr = log_loss(y_train, reg_proba_tr)
+print "acc_test {}\n acc_train {}\n test loss {}\n tr loss {}".format(acc_hui, acc_hui_train, loss_reg_test, loss_reg_tr)
+
+"""RANDOM FOREST"""
+# rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=5)
+# rf = rf.fit(x_train, y_train)
+# predicted_hui_rf = rf.predict(x_test)
+# trained_hui_rf = rf.predict(x_train)
+# test_acc = accuracy_score(y_test, predicted_hui_rf)
+# # frst_log_loss_1 = log_loss(y_test, frst_probalities_1)
+# tr_acc = accuracy_score(y_train, trained_hui_rf)
+# # frst_log_loss_1_tr = log_loss(y_train, frst_probalities_1_tr)
+# print "acc_test {}\n acc_train {}".format(test_acc, tr_acc)
 
 print "data access time ", time.time() - start
 
