@@ -4,17 +4,17 @@ import pandas as pd
 import numpy as np
 # import networkx as nx
 import time
-from sklearn.cross_validation import train_test_split
+from sklearn.cross_validation import train_test_split, KFold
 # from sklearn.decomposition.tests.test_nmf import random_state
 from sklearn.metrics.classification import accuracy_score, log_loss, \
-    precision_score
+    precision_score, recall_score, f1_score
 from sklearn.ensemble.forest import RandomForestClassifier, \
     RandomForestRegressor
 from sklearn.linear_model.logistic import LogisticRegression
 
 import networkx as nx
 
-# 1st: log regr implementation
+# 1st: log lr implementation
 # 2nd: random forest
 class UsersPair():
     def __init__(self, id1, id2):
@@ -86,10 +86,6 @@ for x in tweets:
  
 outTweets = calcTweets(tweetsProcessed)
 
-# up = UsersPair(4413, 81817)
-
-# start = time.time()
-
 friends = None
 
 with open("graph_cb.txt") as f:
@@ -103,8 +99,6 @@ for x in friends:
 friendsFinal = calcFriends(friendsProcessed)
 
 graph = nx.DiGraph()
-
-print len(friendsFinal)
 
 for x in friendsFinal:
     graph.add_node(x.id1)
@@ -134,13 +128,12 @@ for x in friendsFinal:
     
     x.commonFriends = count
     
-print graph.number_of_edges()
-print "graph.number_of_edges()"
+print "number of edges: ", graph.number_of_edges()
 
 features = []
 answers = []
  
-print "mapped friends of friends", time.time() - start
+print "mapped friends of friends in", time.time() - start, "s"
 start = time.time()
   
 for x in friendsFinal:
@@ -160,51 +153,54 @@ for x in friendsFinal:
     tmp.append(x.commonFriends)         
     features.append(tmp)
 
-# npFeatures = np.array(features)
-# features = npFeatures.reshape(-1, 1)
-
 print "mapped features", time.time() - start
 start = time.time()
-# for x in outTweets:
-#     if (x in friendsFinal):
-#         features.append([outTweets.get(x)])
-#         answers.append(friendsFinal[x])
            
 """LOGISTIC REGR"""  
-regr = LogisticRegression(C=0.00001, solver="sag", n_jobs=4)
 # 
-x_train, x_test, y_train, y_test = train_test_split(features, answers, test_size=0.2)
-# 
-regr.fit(x_train, y_train)
-# 
-predicted_hui = regr.predict(x_test)
-predicted_hui_train = regr.predict(x_train)
- 
-reg_proba_test = regr.predict_proba(x_test)
-reg_proba_tr = regr.predict_proba(x_train)
- 
-acc_hui = accuracy_score(y_test, predicted_hui)
-prec_hui = precision_score(y_test, predicted_hui)
-loss_reg_test = log_loss(y_test, reg_proba_test)
-acc_hui_train = accuracy_score(y_train, predicted_hui_train)
-loss_reg_tr = log_loss(y_train, reg_proba_tr)
-print "acc_test {}\n prec test{}\n acc_train {}\n test loss {}\n tr loss {}".format(acc_hui, prec_hui, acc_hui_train, loss_reg_test, loss_reg_tr)
+# x_train, x_test, y_train, y_test = train_test_split(features, answers, test_size=0.2)
+lr = LogisticRegression(C=0.00001, solver="sag", n_jobs=4)
 
-print "completed log regr", time.time() - start
+kf = KFold(len(features), n_folds=5, shuffle=True)
+# lrScores = []
+lrAvgPrecision = 0.0
+lrAvgRecall = 0.0
+lrAvgF1 = 0.0
+for train, test in kf:
+    y_test = answers[test.index]
+    lr.fit(features[train], answers[train])
+    lrPredTest = lr.predict(features[test])
+    lrPrecisionTest = precision_score(y_test, lrPredTest)
+    lrRecallTest = recall_score(y_test, lrPredTest)
+    lrF1Test = f1_score(y_test, lrPredTest)
+    lrAvgPrecision += lrPrecisionTest
+    lrAvgRecall += lrRecallTest
+    lrAvgF1 += lrF1Test
 
-start = time.time()
-"""RANDOM FOREST"""
-rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=5)
-rf = rf.fit(x_train, y_train)
-predicted_hui_rf = rf.predict(x_test)
-trained_hui_rf = rf.predict(x_train)
-test_acc = accuracy_score(y_test, predicted_hui_rf)
-# frst_log_loss_1 = log_loss(y_test, frst_probalities_1)
-tr_acc = accuracy_score(y_train, trained_hui_rf)
-# frst_log_loss_1_tr = log_loss(y_train, frst_probalities_1_tr)
-print "acc_test {}\n acc_train {}".format(test_acc, tr_acc)
+print "log reg completed in ", time.time() - start, " s"
+print {"lr:\n Precision {}\n Recall{}\n F1{}\n", lrAvgPrecision, lrAvgRecall, lrAvgF1}
+  
+
+# start = time.time()
+# """RANDOM FOREST"""
+# rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=5)
+# rf = rf.fit(x_train, y_train)
+# 
+# rfPredictedTest = rf.predict(x_test)
+# rfPredictedTrain = rf.predict(x_train)
+# 
+# rfPrecisionTest = precision_score(y_test, rfPredictedTest)
+# rfRecallTest = recall_score(y_test, rfPredictedTest)
+# rfF1Test = f1_score(y_test, rfPredictedTest)
+# 
+# rtAccTest = accuracy_score(y_test, rfPredictedTest)
+# # frst_log_loss_1 = log_loss(y_test, frst_probalities_1)
+# rtAccTrain = accuracy_score(y_train, rfPredictedTrain)
+# # frst_log_loss_1_tr = log_loss(y_train, frst_probalities_1_tr)
+# print "rnd forest completed in ", time.time() - start, " s"
+# print " precision test: {}\n recall test: {}\n f1 test: {}".format(rfPrecisionTest, rfRecallTest, rfF1Test)
  
-print "rnd forest completed", time.time() - start
+
  
 
 
