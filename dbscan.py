@@ -150,8 +150,12 @@ for x in friendsFinal:
     else:
         tmp.append(outTweets[backPair])
     tmp.append(x.friendOfFriends)
-    tmp.append(x.commonFriends)         
+    tmp.append(x.commonFriends)      
     features.append(tmp)
+    
+for x in xrange(len(features)):
+    features[x].append(answers[x])
+    
 
 print "mapped features", time.time() - start
 start = time.time()
@@ -167,9 +171,22 @@ lrAvgPrecision = 0.0
 lrAvgRecall = 0.0
 lrAvgF1 = 0.0
 for train, test in kf:
-    y_test = answers[test.index]
-    lr.fit(features[train], answers[train])
-    lrPredTest = lr.predict(features[test])
+    y_train = []
+    x_train = []
+    for i in train:
+        y_train.append(features[i][4])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        x_train.append(tmp)
+        
+    y_test = []
+    x_test = []  
+    for i in test:
+        y_test.append(features[i][4])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        x_test.append(tmp)
+        
+    lr.fit(x_train, y_train)
+    lrPredTest = lr.predict(x_test)
     lrPrecisionTest = precision_score(y_test, lrPredTest)
     lrRecallTest = recall_score(y_test, lrPredTest)
     lrF1Test = f1_score(y_test, lrPredTest)
@@ -178,28 +195,42 @@ for train, test in kf:
     lrAvgF1 += lrF1Test
 
 print "log reg completed in ", time.time() - start, " s"
-print {"lr:\n Precision {}\n Recall{}\n F1{}\n", lrAvgPrecision, lrAvgRecall, lrAvgF1}
+print "lr:\n Precision {}\n Recall{}\n F1{}\n".format(lrAvgPrecision / 5, lrAvgRecall / 5, lrAvgF1 / 5)
   
 
-# start = time.time()
-# """RANDOM FOREST"""
-# rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=5)
-# rf = rf.fit(x_train, y_train)
-# 
-# rfPredictedTest = rf.predict(x_test)
-# rfPredictedTrain = rf.predict(x_train)
-# 
-# rfPrecisionTest = precision_score(y_test, rfPredictedTest)
-# rfRecallTest = recall_score(y_test, rfPredictedTest)
-# rfF1Test = f1_score(y_test, rfPredictedTest)
-# 
-# rtAccTest = accuracy_score(y_test, rfPredictedTest)
-# # frst_log_loss_1 = log_loss(y_test, frst_probalities_1)
-# rtAccTrain = accuracy_score(y_train, rfPredictedTrain)
-# # frst_log_loss_1_tr = log_loss(y_train, frst_probalities_1_tr)
-# print "rnd forest completed in ", time.time() - start, " s"
-# print " precision test: {}\n recall test: {}\n f1 test: {}".format(rfPrecisionTest, rfRecallTest, rfF1Test)
- 
+start = time.time()
+"""RANDOM FOREST"""
+rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=5)
+
+rfAvgPrecision = 0.0
+rfAvgRecall = 0.0
+rfAvgF1 = 0.0
+for train, test in kf:
+    y_train = []
+    x_train = []
+    for i in train:
+        y_train.append(features[i][4])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        x_train.append(tmp)
+        
+    y_test = []
+    x_test = []  
+    for i in test:
+        y_test.append(features[i][4])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        x_test.append(tmp)
+        
+    rf.fit(x_train, y_train)
+    rfPredTest = rf.predict(x_test)
+    rfPrecisionTest = precision_score(y_test, rfPredTest)
+    rfRecallTest = recall_score(y_test, rfPredTest)
+    rfF1Test = f1_score(y_test, rfPredTest)
+    rfAvgPrecision += rfPrecisionTest
+    rfAvgRecall += rfRecallTest
+    rfAvgF1 += rfF1Test
+
+print "RF completed in ", time.time() - start, " s"
+print "rf:\n Precision {}\n Recall{}\n F1{}\n".format(rfAvgPrecision / 5, rfAvgRecall / 5, rfAvgF1 / 5)
 
  
 
