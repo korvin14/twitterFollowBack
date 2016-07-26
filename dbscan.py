@@ -87,6 +87,7 @@ friendsFinal = calcFriends(friendsProcessed)
 features = []
 answers = []
 
+
 i = 0
 
 for x in friendsFinal:
