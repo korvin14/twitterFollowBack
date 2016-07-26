@@ -1,0 +1,15 @@
+number of edges:  443399
+mapped friends of friends in 63.1803619862 s
+mapped features 3.29932594299
+log reg completed in  38.3810250759  s
+lr:
+ Precision 0.611296723596
+ Recall0.997177719162
+ F10.757949222613
+
+RF completed in  184.125849962  s
+rf:
+ Precision 0.764722939884
+ Recall0.694869146481
+ F10.728123174794
+
