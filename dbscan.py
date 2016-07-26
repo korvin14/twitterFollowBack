@@ -1,11 +1,13 @@
 import sklearn as sk
 from sklearn.linear_model import LogisticRegressionCV
 import pandas as pd
+import numpy as np
 # import networkx as nx
 import time
 from sklearn.cross_validation import train_test_split
 # from sklearn.decomposition.tests.test_nmf import random_state
-from sklearn.metrics.classification import accuracy_score, log_loss
+from sklearn.metrics.classification import accuracy_score, log_loss, \
+    precision_score
 from sklearn.ensemble.forest import RandomForestClassifier, \
     RandomForestRegressor
 from sklearn.linear_model.logistic import LogisticRegression
@@ -19,6 +21,7 @@ class UsersPair():
         self.id2 = id2
         self.id1 = id1
         self.commonFriends = 0
+        self.friendOfFriends = 0
         
     def __eq__(self, other):
         return (self.id1 == other.id1 and self.id2 == other.id2)
@@ -57,7 +60,7 @@ def calcFriends(friendsProcessed):
             friendsFinal[nextPairStraight] = 1
             friendsFinal[nextPairBack] = 1
         else:
-            friendsFinal[nextPairStraight] = 0  
+            friendsFinal[nextPairStraight] = -1  
     
     return friendsFinal
 
@@ -114,9 +117,19 @@ for x in friendsFinal:
     children = graph.neighbors(x.id1)
     for y in children:
         grandChildren.extend(graph.neighbors(y))
-        
+         
     for y in grandChildren:
         if y == x.id2:
+            count += 1
+    
+    x.friendOfFriends = count
+    count = 0
+            
+    children1 = graph.neighbors(x.id1)
+    children2 = graph.neighbors(x.id2)
+    
+    for y in children1:
+        if y in children2:
             count += 1
     
     x.commonFriends = count
@@ -124,78 +137,74 @@ for x in friendsFinal:
 print graph.number_of_edges()
 print "graph.number_of_edges()"
 
+features = []
+answers = []
+ 
+print "mapped friends of friends", time.time() - start
+start = time.time()
+  
 for x in friendsFinal:
-    print x.commonFriends
+    answers.append(friendsFinal[x])
+    tmp = []
+    if not (x in outTweets):
+        tmp.append(0)
+    else:
+        tmp.append(outTweets[x])
+           
+    backPair = UsersPair(x.id2, x.id1)
+    if not (backPair in outTweets):
+        tmp.append(0)
+    else:
+        tmp.append(outTweets[backPair])
+    tmp.append(x.friendOfFriends)
+    tmp.append(x.commonFriends)         
+    features.append(tmp)
+
+# npFeatures = np.array(features)
+# features = npFeatures.reshape(-1, 1)
+
+print "mapped features", time.time() - start
+start = time.time()
+# for x in outTweets:
+#     if (x in friendsFinal):
+#         features.append([outTweets.get(x)])
+#         answers.append(friendsFinal[x])
+           
+"""LOGISTIC REGR"""  
+regr = LogisticRegression(C=0.00001, solver="sag", n_jobs=4)
 # 
-# for x in friendsFinal:
-#     counter = 0
-#     id1Friends = getFriends(x.id1, friendsFinal1)
-#     id2Friends = getFriends(x.id2, friendsFinal1)
-#     for y in id1Friends:
-#         if y in id2Friends:
-#             counter += 1
-#     x.commonFriends = counter      
+x_train, x_test, y_train, y_test = train_test_split(features, answers, test_size=0.2)
 # 
-# features = []
-# answers = []
+regr.fit(x_train, y_train)
 # 
-# print time.time() - start
-#  
-# for x in friendsFinal:
-#     answers.append(friendsFinal[x])
-#     tmp = []
-#     if not (x in outTweets):
-#         tmp.append(0)
-#     else:
-#         tmp.append(outTweets[x])
-#         
-#     backPair = UsersPair(x.id2, x.id1)
-#     if not (backPair in outTweets):
-#         tmp.append(0)
-#     else:
-#         tmp.append(outTweets[backPair])
-#         
-#     features.append(tmp)
-# 
-# # for x in outTweets:
-# #     if (x in friendsFinal):
-# #         features.append([outTweets.get(x)])
-# #         answers.append(friendsFinal[x])
-#           
-# """LOGISTIC REGR"""  
-# regr = LogisticRegression(solver="sag")
-# # 
-# x_train, x_test, y_train, y_test = train_test_split(features, answers, test_size=0.2, random_state=999)
-# # 
-# print "xtr and xtest"
-# print len(x_train)
-# print len(x_test)
-# regr.fit(x_train, y_train)
-# # 
-# predicted_hui = regr.predict(x_test)
-# predicted_hui_train = regr.predict(x_train)
-# 
-# reg_proba_test = regr.predict_proba(x_test)
-# reg_proba_tr = regr.predict_proba(x_train)
-# 
-# acc_hui = accuracy_score(y_test, predicted_hui)
-# loss_reg_test = log_loss(y_test, reg_proba_test)
-# acc_hui_train = accuracy_score(y_train, predicted_hui_train)
-# loss_reg_tr = log_loss(y_train, reg_proba_tr)
-# print "acc_test {}\n acc_train {}\n test loss {}\n tr loss {}".format(acc_hui, acc_hui_train, loss_reg_test, loss_reg_tr)
-# 
-# """RANDOM FOREST"""
-# # rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=5)
-# # rf = rf.fit(x_train, y_train)
-# # predicted_hui_rf = rf.predict(x_test)
-# # trained_hui_rf = rf.predict(x_train)
-# # test_acc = accuracy_score(y_test, predicted_hui_rf)
-# # # frst_log_loss_1 = log_loss(y_test, frst_probalities_1)
-# # tr_acc = accuracy_score(y_train, trained_hui_rf)
-# # # frst_log_loss_1_tr = log_loss(y_train, frst_probalities_1_tr)
-# # print "acc_test {}\n acc_train {}".format(test_acc, tr_acc)
-# 
-# print "data access time ", time.time() - start
-# 
+predicted_hui = regr.predict(x_test)
+predicted_hui_train = regr.predict(x_train)
+ 
+reg_proba_test = regr.predict_proba(x_test)
+reg_proba_tr = regr.predict_proba(x_train)
+ 
+acc_hui = accuracy_score(y_test, predicted_hui)
+prec_hui = precision_score(y_test, predicted_hui)
+loss_reg_test = log_loss(y_test, reg_proba_test)
+acc_hui_train = accuracy_score(y_train, predicted_hui_train)
+loss_reg_tr = log_loss(y_train, reg_proba_tr)
+print "acc_test {}\n prec test{}\n acc_train {}\n test loss {}\n tr loss {}".format(acc_hui, prec_hui, acc_hui_train, loss_reg_test, loss_reg_tr)
+
+print "completed log regr", time.time() - start
+
+start = time.time()
+"""RANDOM FOREST"""
+rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=5)
+rf = rf.fit(x_train, y_train)
+predicted_hui_rf = rf.predict(x_test)
+trained_hui_rf = rf.predict(x_train)
+test_acc = accuracy_score(y_test, predicted_hui_rf)
+# frst_log_loss_1 = log_loss(y_test, frst_probalities_1)
+tr_acc = accuracy_score(y_train, trained_hui_rf)
+# frst_log_loss_1_tr = log_loss(y_train, frst_probalities_1_tr)
+print "acc_test {}\n acc_train {}".format(test_acc, tr_acc)
+ 
+print "rnd forest completed", time.time() - start
+ 
 
 
