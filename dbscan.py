@@ -22,6 +22,9 @@ class UsersPair():
         self.id1 = id1
         self.commonFriends = 0
         self.friendOfFriends = 0
+        self.id1Friends = 0
+        self.id2Friends = 0
+        
         
     def __eq__(self, other):
         return (self.id1 == other.id1 and self.id2 == other.id2)
@@ -127,6 +130,9 @@ for x in friendsFinal:
             count += 1
     
     x.commonFriends = count
+    x.id1Friends = len(children1)
+    x.id2Friends = len(children2)    
+    
     
 print "number of edges: ", graph.number_of_edges()
 
@@ -150,7 +156,9 @@ for x in friendsFinal:
     else:
         tmp.append(outTweets[backPair])
     tmp.append(x.friendOfFriends)
-    tmp.append(x.commonFriends)      
+    tmp.append(x.commonFriends)
+    tmp.append(x.id1Friends)    
+    tmp.append(x.id2Friends) 
     features.append(tmp)
     
 for x in xrange(len(features)):
@@ -174,15 +182,15 @@ for train, test in kf:
     y_train = []
     x_train = []
     for i in train:
-        y_train.append(features[i][4])
-        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        y_train.append(features[i][6])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3], features[i][4], features[i][5]]
         x_train.append(tmp)
         
     y_test = []
     x_test = []  
     for i in test:
-        y_test.append(features[i][4])
-        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        y_test.append(features[i][6])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3], features[i][4], features[i][5]]
         x_test.append(tmp)
         
     lr.fit(x_train, y_train)
@@ -195,7 +203,7 @@ for train, test in kf:
     lrAvgF1 += lrF1Test
 
 print "log reg completed in ", time.time() - start, " s"
-print "lr:\n Precision {}\n Recall{}\n F1{}\n".format(lrAvgPrecision / 5, lrAvgRecall / 5, lrAvgF1 / 5)
+print "lr:\n Precision {}\n Recall {}\n F1 {}\n".format(lrAvgPrecision / 5, lrAvgRecall / 5, lrAvgF1 / 5)
   
 
 start = time.time()
@@ -209,17 +217,17 @@ for train, test in kf:
     y_train = []
     x_train = []
     for i in train:
-        y_train.append(features[i][4])
-        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        y_train.append(features[i][6])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3], features[i][4], features[i][5]]
         x_train.append(tmp)
         
     y_test = []
     x_test = []  
     for i in test:
-        y_test.append(features[i][4])
-        tmp = [features[i][0], features[i][1], features[i][2], features[i][3]]
+        y_test.append(features[i][6])
+        tmp = [features[i][0], features[i][1], features[i][2], features[i][3], features[i][4], features[i][5]]
         x_test.append(tmp)
-        
+       
     rf.fit(x_train, y_train)
     rfPredTest = rf.predict(x_test)
     rfPrecisionTest = precision_score(y_test, rfPredTest)
@@ -230,7 +238,7 @@ for train, test in kf:
     rfAvgF1 += rfF1Test
 
 print "RF completed in ", time.time() - start, " s"
-print "rf:\n Precision {}\n Recall{}\n F1{}\n".format(rfAvgPrecision / 5, rfAvgRecall / 5, rfAvgF1 / 5)
+print "rf:\n Precision {}\n Recall {}\n F1 {}\n".format(rfAvgPrecision / 5, rfAvgRecall / 5, rfAvgF1 / 5)
 
  
 
